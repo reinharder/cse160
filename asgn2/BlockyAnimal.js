@@ -8,13 +8,18 @@ let a_Position;
 let u_FragColor;
 let u_Size;
 let drag = false;
+let u_ModelMatrix;
+let u_GlobalRotateMatrix;
+
+
 
 var VSHADER_SOURCE =`
   attribute vec4 a_Position;
   uniform float u_Size;
+  uniform mat4 u_ModelMatrix;
+  uniform mat4 u_GlobalRotateMatrix;
   void main() {
-    gl_Position = a_Position;
-    gl_PointSize = u_Size;
+    gl_Position = u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
   }`
 
 // Fragment shader program
@@ -35,6 +40,8 @@ function setupWebGL() {
     console.log('Failed to get the rendering context for WebGL');
     return;
   }
+
+  gl.enable(gl.DEPTH_TEST);
 
   // Initialize shaders
   if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
@@ -59,64 +66,53 @@ function connectVariablestoGLSL(){
     return;
   }
 
-  u_Size = gl.getUniformLocation(gl.program, 'u_Size');
-  if (!u_Size) {
-    console.log('Failed to get the storage location of u_Size');
+  u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+  if (!u_ModelMatrix) {
+    console.log('Failed to get the storage location of u_ModelMatrix');
     return;
   }
+
+  u_GlobalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalRotateMatrix');
+  if (!u_GlobalRotateMatrix) {
+    console.log('Failed to get the storage location of u_GlobalRotateMatrix');
+    return;
+  }
+
+  var identityM = new Matrix4();
+  gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
 }
 
 
 let g_selectColors = [1.0, 1.0, 1.0, 1.0];
 let g_selectSize = 10.0;
 let g_selectSegment = 10.0;
+let globalangle = 0;
+let global_angle_x = 0;
+let global_angle_y = 0;
+let g_angle = 0;
+let h_angle = 0;
 let randomColorEnabled = false;
 let randomSizeEnabled = false;
+let g_animation = false;
+let g_nod = false;
 
 function addActionsForHtmlUI() {
-  document.getElementById('clear').onclick = function() {g_shapeList = []; renderAllShapes(); };
-  document.getElementById('square').onclick    = function() { g_selectedType = POINT;    g_outline = 0;};
-  document.getElementById('triangle').onclick  = function() { g_selectedType = TRIANGLE; g_outline = 0;};
-  document.getElementById('circle').onclick    = function() { g_selectedType = CIRCLE;   g_outline = 0;};
-  document.getElementById('drawing').onclick    = function() { point = new Drawing(); g_shapeList.push(point); renderAllShapes();};
+  document.getElementById('on').onclick   = function() { g_animation = true;};
+  document.getElementById('off').onclick  = function() { g_animation = false;};
   
-  document.getElementById('red').oninput = function() {g_selectColors[0] = this.value/100;};
-  document.getElementById('green').oninput = function() {g_selectColors[1] = this.value/100;};
-  document.getElementById('blue').oninput = function() {g_selectColors[2] = this.value/100;};
+  
+  document.getElementById('joint').oninput = function() {g_angle = this.value; renderScene();};
+  document.getElementById('joint2').oninput = function() {h_angle = this.value; renderScene();};
+  
   
   document.getElementById('random').onclick = function() { randomColorEnabled = this.checked; };
   document.getElementById('size').oninput = function() {g_selectSize = this.value;};
   document.getElementById('segment').oninput = function() {g_selectSegment = this.value;};
   document.getElementById('random1').onclick = function() { randomSizeEnabled = this.checked; };
+  document.getElementById('camera').addEventListener('input', function() { global_angle_x = this.value; renderScene();});
+
 }
-
-function main(){
-  setupWebGL();
-  connectVariablestoGLSL();
-  addActionsForHtmlUI();
-
-  // Register function (event handler) to be called on a mouse press
-   canvas.onmousedown = function(ev){
-   click(ev);
-   drag = true;
-   };
-   canvas.onmouseup = function(ev){
-   drag = false;
-   };
-   canvas.onmousemove = function(ev){
-   if(drag){
-      click(ev);
-   }
-   };
-
-  // Specify the color for clearing <canvas>
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-  // Clear <canvas>
-  gl.clear(gl.COLOR_BUFFER_BIT);
-}
-
-function convertCoordinatesEventToGL(ev) {
+function convertToGLSpace(ev){
   var x = ev.clientX; // x coordinate of a mouse pointer
   var y = ev.clientY; // y coordinate of a mouse pointer
   var rect = ev.target.getBoundingClientRect();
@@ -124,48 +120,112 @@ function convertCoordinatesEventToGL(ev) {
   x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
   y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
 
-  return ([x, y]);
+  //return both variables
+  return ([x,y]);
 }
 
-
-let g_shapeList = [];
-let g_selectedType = POINT;
-
-
+var pre_mouse_pos;
 
 function click(ev) {
-  var [x,y] = convertCoordinatesEventToGL(ev);
-  var point;
-  if(g_selectedType==POINT){
-    point = new Point();
-  } else if (g_selectedType==TRIANGLE){
-    point = new Triangle();
-  } else if (g_selectedType==CIRCLE){
-    point = new Circle();
-    point.segments = g_selectSegment;
-    }
-  point.position = [x, y];
-  if (randomColorEnabled) {
-    point.color = [Math.random(), Math.random(), Math.random(), 1.0]; // Random RGBA color
-  } else {
-    point.color = g_selectColors.slice(); // Use selected color
-  }
-  if (randomSizeEnabled) {
-    point.size = Math.random() * 25; // Random Size
-  } else {
-    point.size = g_selectSize; // Use selected size
-  }
-  g_shapeList.push(point);
+  //get the cordinates of ev and convert to webgl space and then place into x,y
+  let [x,y] = convertToGLSpace(ev);
 
-  renderAllShapes();
+  let x_sens = 10;
+  let y_sense = 10;
 
+  let curent_mouse_pos = [ev.clientX ,ev.clientY]
+
+  if (pre_mouse_pos != null) {
+    let movement_x = (curent_mouse_pos[0] - pre_mouse_pos[0])
+    let movement_y = (curent_mouse_pos[1] - pre_mouse_pos[1])/2
+    
+    global_angle_y -= movement_y;
+
+    global_angle_x -= movement_x;
+
+  }
+
+  if (ev.buttons == 1) {
+    pre_mouse_pos = curent_mouse_pos;
+  }
+  else{
+    pre_mouse_pos = null;
+  }
+
+  //renderScene();
+
+  
 }
 
-function renderAllShapes() {
+function main(){
+  setupWebGL();
+  connectVariablestoGLSL();
+  addActionsForHtmlUI();
+  canvas.onmousemove = function(ev){ if (ev.buttons == 1) { click(ev); }else{pre_mouse_pos = null} };
+  canvas.onclick = function(ev){ if (ev.shiftKey){g_nod = !g_nod} };
+
+
+
+  // Specify the color for clearing <canvas>
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+  // Clear <canvas>
+  //renderScene();
+  requestAnimationFrame(tick);
+  
+}
+
+var g_startTime = performance.now() / 1000;
+var g_seconds = performance.now() / 1000 - g_startTime;
+
+
+function tick(){
+  g_seconds = performance.now() / 1000 - g_startTime;
+  //console.log(g_seconds);
+  animationUpdate();
+  animation2();
+
+  renderScene();
+
+  requestAnimationFrame(tick);
+}
+
+function animationUpdate() {
+  if (g_animation){
+    g_angle = (45*Math.sin(g_seconds));
+    //console.log(g_angle);
+  } 
+}
+
+function animation2() {
+  if (g_animation){
+    if (g_nod) {
+      g_angle = (10*Math.sin(g_seconds));
+    }
+  }
+}
+
+
+function renderScene(){
+  var startTime = performance.now();
+  var globalRotMat = new Matrix4()
+  globalRotMat.rotate(-10 + global_angle_y, 1, 0, 0);
+  globalRotMat.rotate(global_angle_x, 0, 1, 0);
+  gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  var len = g_shapeList.length;
-  for(var i = 0; i < len; i++) {
-    g_shapeList[i].render();
-  }
+  renderAnimal();
+  let duration = performance.now() - startTime;
+  sendTextToHTML(`Ms: ${Math.floor(duration)}, FPS: ${Math.floor(10000/duration)/10}`, 'info');
 }
+const sendTextToHTML = (text, htmlTag) => {
+  let htmlObj = document.getElementById(htmlTag);
+  if (!htmlObj) {
+    console.log(`Failed to get ${htmlTag} from HTML`);
+    return;
+  }
+  htmlObj.innerHTML = text;
+}
+
+

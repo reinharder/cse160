@@ -16,23 +16,10 @@
     <button type="button" id="on">ON</button>
     <button type="button" id="off">OFF</button>
     <br>
-    <label for="color">Shape Color: </label>
-    <br>
-    <label for="joint">Joint 1 </label>
+    <label for="joint">Head </label>
     <input type="range" min="0.0" max="100.0" defaultvalue="0" class="slider" id="joint"> 
-    <label for="joint2">Joint 2 </label>
+    <label for="joint2">Leg </label>
     <input type="range" min="0.0" max="100.0" defaultvalue="0" class="slider" id="joint2">
-
-    <label class="switch"><input type="checkbox" id="random">Random Color!</label>
-    <!-- added a button that randomizes the color of shape -->
-    <br>
-    <label for="size">Shape Size: </label>
-    <input type="range" min="0.0" max="25.0" value="10" class="slider" id="size">
-    <label for="segments">(Circle) Segment Count: </label>
-    <input type="range" min="0.0" max="25.0" value="10" class="slider" id="segment"> 
-    <br>
-    <label class="switch"><input type="checkbox" id="random1">Random Size!</label>
-    <!-- added a button that randomizes the size of shape -->
     <br>
     <label for="size">Camera angle: </label>
     <input type="range" min="0.0" max="360.0" value="10" class="slider" id="camera">
@@ -48,5 +35,6 @@
     <script src="circle.js"></script>
     <script src="cube.js"></script>
     <script src="BlockyAnimal.js"></script>
+    <script src="renderAnimal.js"></script>
   </body>
 </html>

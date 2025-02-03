@@ -95,6 +95,7 @@ let randomColorEnabled = false;
 let randomSizeEnabled = false;
 let g_animation = false;
 let g_nod = false;
+let g_walk = true;
 
 function addActionsForHtmlUI() {
   document.getElementById('on').onclick   = function() { g_animation = true;};
@@ -103,12 +104,7 @@ function addActionsForHtmlUI() {
   
   document.getElementById('joint').oninput = function() {g_angle = this.value; renderScene();};
   document.getElementById('joint2').oninput = function() {h_angle = this.value; renderScene();};
-  
-  
-  document.getElementById('random').onclick = function() { randomColorEnabled = this.checked; };
-  document.getElementById('size').oninput = function() {g_selectSize = this.value;};
-  document.getElementById('segment').oninput = function() {g_selectSegment = this.value;};
-  document.getElementById('random1').onclick = function() { randomSizeEnabled = this.checked; };
+
   document.getElementById('camera').addEventListener('input', function() { global_angle_x = this.value; renderScene();});
 
 }
@@ -162,7 +158,7 @@ function main(){
   connectVariablestoGLSL();
   addActionsForHtmlUI();
   canvas.onmousemove = function(ev){ if (ev.buttons == 1) { click(ev); }else{pre_mouse_pos = null} };
-  canvas.onclick = function(ev){ if (ev.shiftKey){g_nod = !g_nod} };
+  canvas.onclick = function(ev){ if (ev.shiftKey){g_nod = !g_nod; g_walk = !g_walk} };
 
 
 
@@ -192,8 +188,10 @@ function tick(){
 
 function animationUpdate() {
   if (g_animation){
-    g_angle = (45*Math.sin(g_seconds));
+    if (g_walk) {
+          h_angle = -(15*Math.sin(10*g_seconds));
     //console.log(g_angle);
+    }
   } 
 }
 
@@ -215,7 +213,12 @@ function renderScene(){
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  renderAnimal();
+  renderPig();
+
+
+
+
+  
   let duration = performance.now() - startTime;
   sendTextToHTML(`Ms: ${Math.floor(duration)}, FPS: ${Math.floor(10000/duration)/10}`, 'info');
 }

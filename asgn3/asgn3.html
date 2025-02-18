@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Soichiro Hiroshima asg2</title>
+  </head>
+
+  <body onload="main()">
+    <canvas id="webgl" width="400" height="400">
+    Please use a browser that supports "canvas"
+    </canvas>
+    <p id="info"> Ms: 0, FPS: 0 </p>
+    <br>
+    <label for="mode">Animation: </label>
+    <br>
+    <button type="button" id="on">ON</button>
+    <button type="button" id="off">OFF</button>
+    <br>
+    <label for="joint">Head </label>
+    <input type="range" min="0.0" max="100.0" defaultvalue="0" class="slider" id="joint"> 
+    <label for="joint2">Leg </label>
+    <input type="range" min="0.0" max="100.0" defaultvalue="0" class="slider" id="joint2">
+    <br>
+    <label for="size">Camera angle: </label>
+    <input type="range" min="0.0" max="360.0" value="10" class="slider" id="camera">
+    <br>
+
+
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/cuon-matrix-cse160.js"></script>
+    <script src="lib/webgl-debug.js"></script>
+    <script src="lib/cuon-utils.js"></script>
+    <script src="point.js"></script>
+    <script src="triangle.js"></script>
+    <script src="circle.js"></script>
+    <script src="cube.js"></script>
+    <script src="world.js"></script>
+    <script src="renderAnimal.js"></script>
+  </body>
+</html>

@@ -27,7 +27,7 @@ var FSHADER_SOURCE =`
     if (u_whichTexture == -2) {
       gl_FragColor = u_FragColor;
     } else if (u_whichTexture == -1) {
-      gl_FragColor = vec4(v_UV, 1.0, 1.0);
+      gl_FragColor = vec4(0.0, 1.0, 0.5, 1.0);
     } else if (u_whichTexture == 0) {
       gl_FragColor = texture2D(u_Sampler0, v_UV);
     } else {
@@ -67,6 +67,7 @@ function setupWebGL() {
     console.log('Failed to intialize shaders.');
     return;
   }
+  g_camera = new Camera();
 }
 
 function connectVariablestoGLSL(){
@@ -185,6 +186,7 @@ let randomSizeEnabled = false;
 let g_animation = false;
 let g_nod = false;
 let g_walk = true;
+let g_camera;
 
 
 function addActionsForHtmlUI() {
@@ -244,12 +246,14 @@ function click(ev) {
 }
 
 function main(){
+  //var g_camera = new Camera();
   setupWebGL();
   connectVariablestoGLSL();
   addActionsForHtmlUI();
   canvas.onmousemove = function(ev){ if (ev.buttons == 1) { click(ev); }else{pre_mouse_pos = null} };
   canvas.onclick = function(ev){ if (ev.shiftKey){g_nod = !g_nod; g_walk = !g_walk} };
 
+  document.onkeydown = keydown;
   initTextures();
 
   // Specify the color for clearing <canvas>
@@ -271,6 +275,7 @@ function tick(){
   animationUpdate();
   animation2();
 
+
   renderScene();
 
   requestAnimationFrame(tick);
@@ -290,16 +295,46 @@ function animation2() {
     if (g_nod) {
       g_angle = (10*Math.sin(g_seconds));
     }
+  } 
+}
+function mouseCam(ev){
+  coord = convertCoordinatesEventToGL(ev);
+  if(coord[0] < 0.5){ // left side
+     g_camera.panMLeft(coord[0]*-10);
+  } else{
+     g_camera.panMRight(coord[0]*-10);
   }
 }
 
+function keydown(ev){
+  if(ev.keyCode == 65){ //a
+     g_camera.right();
+  } else if (ev.keyCode == 68){ //d
+     g_camera.left();
+  } else if (ev.keyCode == 87){ //w
+     g_camera.forward();
+  } else if (ev.keyCode == 83){ //s
+     g_camera.back();
+  } else if (ev.keyCode==81){ 
+     g_camera.panLeft();
+  } else if (ev.keyCode==69){ 
+     g_camera.panRight();
+  }
+  renderScene();
+}
 
 function renderScene(){
   var startTime = performance.now();
-  var ProjMat = new Matrix4()
-  gl.uniformMatrix4fv(u_ProjectionMatrix, false, ProjMat.elements);
-  var ViewMat = new Matrix4()
-  gl.uniformMatrix4fv(u_ViewMatrix, false, ViewMat.elements);
+  var projMat = g_camera.projMat;
+  gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
+
+  // Pass the view matrix
+  var viewMat = g_camera.viewMat;
+  gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
+
+  //ViewMat.setLookAt(0, 0, -1, 0, 0, 0, 0, 1, 0);
+
+  //gl.uniformMatrix4fv(u_ViewMatrix, false, ViewMat.elements);
   var globalRotMat = new Matrix4()
   globalRotMat.rotate(-10 + global_angle_y, 1, 0, 0);
   globalRotMat.rotate(global_angle_x, 0, 1, 0);
@@ -322,6 +357,11 @@ function renderScene(){
   //test1.textureNum = -1;
   test1.render();
 
+  var floor = new Cube();
+  floor.matrix.scale(32,0.1,32);
+  floor.matrix.translate(-.5,-1,-.5);
+  floor.textureNum = -1;
+  floor.render();
   
   let duration = performance.now() - startTime;
   sendTextToHTML(`Ms: ${Math.floor(duration)}, FPS: ${Math.floor(10000/duration)/10}`, 'info');

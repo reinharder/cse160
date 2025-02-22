@@ -22,6 +22,7 @@ var FSHADER_SOURCE =`
   varying vec2 v_UV;
   uniform vec4 u_FragColor;
   uniform sampler2D u_Sampler0;
+  uniform sampler2D u_Sampler1;
   uniform int u_whichTexture;
   void main() {
     if (u_whichTexture == -2) {
@@ -30,6 +31,9 @@ var FSHADER_SOURCE =`
       gl_FragColor = vec4(0.0, 1.0, 0.5, 1.0);
     } else if (u_whichTexture == 0) {
       gl_FragColor = texture2D(u_Sampler0, v_UV);
+    } 
+      else if (u_whichTexture == 1) {
+      gl_FragColor = texture2D(u_Sampler1, v_UV);
     } else {
       gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
@@ -44,6 +48,7 @@ let drag = false;
 let u_ModelMatrix;
 let u_GlobalRotateMatrix;
 let u_sampler0;
+let u_sampler1;
 let u_ViewMatrix;
 let u_ProjectionMatrix;
 let a_UV;
@@ -122,6 +127,12 @@ function connectVariablestoGLSL(){
     return;
   }
 
+  u_sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
+  if (!u_sampler1) {
+    console.log('Failed to get the storage location of u_Sampler1');
+    return;
+  }
+
   u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
   if (!u_whichTexture) {
     console.log('Failed to get the storage location of u_whichTexture');
@@ -142,33 +153,57 @@ function connectVariablestoGLSL(){
 
 function initTextures() {
   var image = new Image();  // Create the image object
+  var image1 = new Image();
   if (!image) {
      console.log('Failed to create the image object');
      return false;
   }
+  if (!image1) {
+      console.log('Failed to create the image object');
+      return false;
+    }
 
   // Register the event handler to be called on loading an image
   image.onload = function(){ loadTexture(image); };
+  image1.onload = function(){ loadTexture1(image1); };
   // Tell the browser to load an image
   image.src = 'dirt4.png';
+  image1.src = 'grass1.png';
 
   // Add more texture loading here // DEBUG:
   return true;
 }
 
-function loadTexture (image) {
+function loadTexture(image) {
   var texture = gl.createTexture();
   if (!texture) {
     console.log('Failed to create the texture object');
     return false;
   }
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-  gl.activeTexture(gl.TEXTURE0);
+  gl.activeTexture(gl.TEXTURE0); // Activate texture unit 0
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
   gl.uniform1i(u_sampler0, 0);
+  
+  console.log('dirt loaded');
+}
 
+function loadTexture1(image) {
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create the texture object');
+    return false;
+  }
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+  gl.activeTexture(gl.TEXTURE1); // Activate texture unit 1
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+  gl.uniform1i(u_sampler1, 1);
+
+  console.log('grass loaded');
 }
 
 
@@ -181,25 +216,9 @@ let global_angle_x = 0;
 let global_angle_y = 0;
 let g_angle = 0;
 let h_angle = 0;
-let randomColorEnabled = false;
-let randomSizeEnabled = false;
-let g_animation = false;
-let g_nod = false;
-let g_walk = true;
 let g_camera;
 
 
-function addActionsForHtmlUI() {
-  document.getElementById('on').onclick   = function() { g_animation = true;};
-  document.getElementById('off').onclick  = function() { g_animation = false;};
-  
-  
-  document.getElementById('joint').oninput = function() {g_angle = this.value; renderScene();};
-  document.getElementById('joint2').oninput = function() {h_angle = this.value; renderScene();};
-
-  document.getElementById('camera').addEventListener('input', function() { global_angle_x = this.value; renderScene();});
-
-}
 function convertToGLSpace(ev){
   var x = ev.clientX; // x coordinate of a mouse pointer
   var y = ev.clientY; // y coordinate of a mouse pointer
@@ -249,7 +268,6 @@ function main(){
   //var g_camera = new Camera();
   setupWebGL();
   connectVariablestoGLSL();
-  addActionsForHtmlUI();
   canvas.onmousemove = function(ev){ if (ev.buttons == 1) { click(ev); }else{pre_mouse_pos = null} };
   canvas.onclick = function(ev){ if (ev.shiftKey){g_nod = !g_nod; g_walk = !g_walk} };
 
@@ -272,31 +290,12 @@ var g_seconds = performance.now() / 1000 - g_startTime;
 function tick(){
   g_seconds = performance.now() / 1000 - g_startTime;
   //console.log(g_seconds);
-  animationUpdate();
-  animation2();
-
 
   renderScene();
 
   requestAnimationFrame(tick);
 }
 
-function animationUpdate() {
-  if (g_animation){
-    if (g_walk) {
-          h_angle = -(15*Math.sin(10*g_seconds));
-    //console.log(g_angle);
-    }
-  } 
-}
-
-function animation2() {
-  if (g_animation){
-    if (g_nod) {
-      g_angle = (10*Math.sin(g_seconds));
-    }
-  } 
-}
 function mouseCam(ev){
   coord = convertCoordinatesEventToGL(ev);
   if(coord[0] < 0.5){ // left side
@@ -335,34 +334,16 @@ function renderScene(){
   //ViewMat.setLookAt(0, 0, -1, 0, 0, 0, 0, 1, 0);
 
   //gl.uniformMatrix4fv(u_ViewMatrix, false, ViewMat.elements);
-  var globalRotMat = new Matrix4()
+  var globalRotMat = new Matrix4();
   globalRotMat.rotate(-10 + global_angle_y, 1, 0, 0);
   globalRotMat.rotate(global_angle_x, 0, 1, 0);
   gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  //renderPig();
+  drawMap();
+  drawEnv();
 
-  var test = new Cube();
-  test.matrix.scale(.5,.5,.5);
-  test.matrix.translate(0,0,-1);
-  test.color = [0.0, 0.0, 1.0, 1.0];
-  test.textureNum = -2;
-  test.render();
-
-  var test1 = new Cube();
-  test1.matrix.scale(.5,.5,.5);
-  test1.matrix.translate(-1.5,0,-1);
-  //test1.textureNum = -1;
-  test1.render();
-
-  var floor = new Cube();
-  floor.matrix.scale(32,0.1,32);
-  floor.matrix.translate(-.5,-1,-.5);
-  floor.textureNum = -1;
-  floor.render();
-  
   let duration = performance.now() - startTime;
   sendTextToHTML(`Ms: ${Math.floor(duration)}, FPS: ${Math.floor(10000/duration)/10}`, 'info');
 }

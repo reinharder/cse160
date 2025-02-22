@@ -1,8 +1,8 @@
 class Camera{
     constructor(){
        this.fov = 60;
-       this.eye = new Vector3([0,1,3]);
-       this.at  = new Vector3([0,0,-100]);
+       this.eye = new Vector3([0,1,-3]);
+       this.at  = new Vector3([0,0,10]);
        this.up  = new Vector3([0,1,0]);
        this.viewMat = new Matrix4();
        this.viewMat.setLookAt(
@@ -10,20 +10,20 @@ class Camera{
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
           this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
        this.projMat = new Matrix4();
-       this.projMat.setPerspective(50, canvas.width/canvas.height, 0.1, 1000);
+       this.projMat.setPerspective(this.fov, canvas.width/canvas.height, 0.1, 1000);
     }
  
     forward(){
        var f = new Vector3([0,0,0]);
        f.set(this.at);
-       f.sub(this.eye);
+       f.sub(this.eye); //f = at - eye
        f = f.normalize();
-       this.at = this.at.add(f.mul(0.5));
-       this.eye = this.eye.add(f.mul(0.5));
+       this.at = this.at.add(f.mul(0.5)); //speed mult and add to at
+       this.eye = this.eye.add(f.mul(0.5)); //speed mult and add to eye
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  
     back(){
@@ -36,7 +36,7 @@ class Camera{
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  
     left(){
@@ -52,7 +52,7 @@ class Camera{
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  
     right(){
@@ -68,7 +68,7 @@ class Camera{
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  
     panLeft(){
@@ -82,11 +82,10 @@ class Camera{
        var tempEye = new Vector3([0,0,0]);
        tempEye.set(this.eye);
        this.at = tempEye.add(f_prime);
-       // console.log(this.at.elements[1]);
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  
     panRight(){
@@ -100,11 +99,10 @@ class Camera{
        var tempEye = new Vector3([0,0,0]);
        tempEye.set(this.eye);
        this.at = tempEye.add(f_prime);
-       // console.log(this.at.elements[1]);
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  
     panMLeft(deg){
@@ -118,11 +116,10 @@ class Camera{
        var tempEye = new Vector3([0,0,0]);
        tempEye.set(this.eye);
        this.at = tempEye.add(f_prime);
-       // console.log(this.at.elements[1]);
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  
     panMRight(deg){
@@ -136,11 +133,10 @@ class Camera{
        var tempEye = new Vector3([0,0,0]);
        tempEye.set(this.eye);
        this.at = tempEye.add(f_prime);
-       // console.log(this.at.elements[1]);
        this.viewMat.setLookAt(
           this.eye.elements[0], this.eye.elements[1],  this.eye.elements[2],
           this.at.elements[0],  this.at.elements[1],   this.at.elements[2],
-          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); // (eye, at, up)
+          this.up.elements[0],  this.up.elements[1],   this.up.elements[2]); 
     }
  }
  

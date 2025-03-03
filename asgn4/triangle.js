@@ -97,6 +97,7 @@ class Triangle {
   // Draw the triangle
   gl.drawArrays(gl.TRIANGLES, 0, n);
 
+
 }
 
  function drawTriangle3DUVNormal(vertices, uv, normals) {

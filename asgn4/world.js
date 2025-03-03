@@ -9,6 +9,7 @@ var VSHADER_SOURCE =`
    attribute vec3 a_Normal;
    varying vec2 v_UV;
    varying vec3 v_Normal;
+   varying vec4 v_VertPos;
    uniform mat4 u_ModelMatrix;
    uniform mat4 u_GlobalRotateMatrix;
    uniform mat4 u_ViewMatrix;
@@ -17,6 +18,7 @@ var VSHADER_SOURCE =`
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     v_UV = a_UV;
     v_Normal = a_Normal;
+    v_VertPos = u_ModelMatrix * a_Position;
   }`
 
 // Fragment shader program
@@ -24,9 +26,11 @@ var FSHADER_SOURCE =`
   precision mediump float;
   varying vec2 v_UV;
   varying vec3 v_Normal;
+  varying vec4 v_VertPos;
   uniform vec4 u_FragColor;
   uniform sampler2D u_Sampler0;
   uniform sampler2D u_Sampler1;
+  uniform vec3 u_lightPos;
   uniform int u_whichTexture;
   void main() {
     if (u_whichTexture == -2) {
@@ -41,6 +45,15 @@ var FSHADER_SOURCE =`
     } else {
       gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
+
+    vec3 lightVector = vec3(v_VertPos) - u_lightPos;
+    float r = length(lightVector);
+    //if (r < 1.0) {
+    //  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    //} else if (r < 2.0) {
+    //  gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); 
+    //}
+    gl_FragColor = vec4(vec3(gl_FragColor)/(r*r), 1.0);
   }`
 
 let canvas;
@@ -57,6 +70,7 @@ let u_ViewMatrix;
 let u_ProjectionMatrix;
 let a_UV;
 var u_whichTexture;
+let u_lightPos;
 
 
 function setupWebGL() {
@@ -149,6 +163,12 @@ function connectVariablestoGLSL(){
     return;
   }
 
+  u_lightPos = gl.getUniformLocation(gl.program, 'u_lightPos');
+  if (!u_lightPos) {
+    console.log('Failed to get the storage location of u_lightPos');
+    return;
+  }
+
   var identityM = new Matrix4();
   gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
   // Set up the view and projection matrices
@@ -228,10 +248,14 @@ let g_angle = 0;
 let h_angle = 0;
 let g_camera;
 let g_normal = false;
+let g_lightPos = [0, 1, -2];
 
 function addActionsForHtmlUI() {
   document.getElementById('on').onclick   = function() { g_normal = true;};
   document.getElementById('off').onclick  = function() { g_normal = false;};
+  document.getElementById('lightx').addEventListener('input', function() { g_lightPos[0] = this.value; renderScene();});
+  document.getElementById('lighty').addEventListener('input', function() { g_lightPos[1] = this.value; renderScene();});
+  document.getElementById('lightz').addEventListener('input', function() { g_lightPos[2] = this.value; renderScene();});
   
 
 }
@@ -310,9 +334,16 @@ function tick(){
   g_seconds = performance.now() / 1000 - g_startTime;
   //console.log(g_seconds);
 
+  updateAnimationAngles();
+
   renderScene();
 
   requestAnimationFrame(tick);
+}
+
+
+function updateAnimationAngles(){
+  g_lightPos[0] = Math.cos(g_seconds);
 }
 
 function mouseCam(ev){
@@ -375,12 +406,23 @@ function renderScene(){
   
   var sphere = new Sphere();
   sphere.matrix.scale(.5,.5,.5);
-  sphere.matrix.translate(0,0,-4);
+  sphere.matrix.translate(-3,1,0);
   sphere.textureNum = -2;
   if (g_normal) {
     sphere.textureNum = -1;
   }
   sphere.render();
+
+  gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+
+  var light = new Cube();
+  light.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+  light.matrix.scale(.1,.1,.1);
+  light.color = [1.0, 1.0, 0.0, 1.0];
+  light.textureNum = -2;
+  light.render();
+
+
 
   let duration = performance.now() - startTime;
   sendTextToHTML(`Ms: ${Math.floor(duration)}, FPS: ${Math.floor(10000/duration)/10}`, 'info');

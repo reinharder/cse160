@@ -27,8 +27,8 @@ function sin(x){
        // Pass the matrix to u_ModelMatrix attribute
        gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
  
-       var d = Math.PI/10;
-       var dd = Math.PI/100;
+       var d = Math.PI/25;
+       var dd = Math.PI/25;
  
        for(var t=0; t<Math.PI; t+=d){
           for(var r=0; r<(2*Math.PI); r+=d){
@@ -49,14 +49,14 @@ function sin(x){
              v=v.concat(p2); uv=uv.concat(uv2);
              v=v.concat(p4); uv=uv.concat(uv4);
  
-             // gl.uniform4f(u_FragColor, 1,1,1,1);
+             //gl.uniform4f(u_FragColor, 1,1,1,1);
              drawTriangle3DUVNormal(v,uv,v);
  
              v=[]; uv=[];
              v=v.concat(p1); uv=uv.concat(uv1);
              v=v.concat(p4); uv=uv.concat(uv4);
              v=v.concat(p3); uv=uv.concat(uv3);
-             // gl.uniform4f(u_FragColor, 1,.35,.25,1);
+            // gl.uniform4f(u_FragColor, 1,.35,.25,1);
              drawTriangle3DUVNormal(v,uv,v);
           }
        }

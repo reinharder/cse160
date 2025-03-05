@@ -19,7 +19,7 @@ var VSHADER_SOURCE =`
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     v_UV = a_UV;
     //v_Normal = a_Normal;
-    v_Normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal, 1)));
+    v_Normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal,1)));
     v_VertPos = u_ModelMatrix * a_Position;
   }`
 
@@ -36,6 +36,11 @@ var FSHADER_SOURCE =`
   uniform vec3 u_cameraPos;
   uniform int u_whichTexture;
   uniform bool u_lightOn;
+  uniform bool u_spotlightOn;
+  uniform vec3 u_spotlightPos;
+  uniform vec3 u_spotlightDir;
+  uniform float u_spotlightCutoff;
+  uniform float u_spotlightExponent;
 
   void main() {
     if (u_whichTexture == -2) {
@@ -81,9 +86,29 @@ var FSHADER_SOURCE =`
 
       vec3 diffuse = vec3(gl_FragColor) * nDotL * 0.7;
       vec3 ambient = vec3(gl_FragColor) * 0.3;
+
       if (u_lightOn) {
         gl_FragColor = vec4(diffuse + ambient + specular, 1.0);
     } 
+
+
+    // Spotlight calculations
+    vec3 spotDir = normalize(-u_spotlightDir);
+    vec3 spotVector = normalize(u_spotlightPos - vec3(v_VertPos));
+    float spotCosine = dot(spotVector, spotDir);
+    float spotFactor = 0.0;
+    
+    if (spotCosine >= u_spotlightCutoff) {
+        spotFactor = pow(spotCosine, u_spotlightExponent);
+    }
+    
+    diffuse *= spotFactor;
+    specular *= spotFactor;
+
+    // Apply spotlight effect if enabled
+       if (u_spotlightOn) {
+        gl_FragColor = vec4(diffuse + ambient + specular, 1.0);
+       }
   }`
 
 let canvas;
@@ -104,6 +129,11 @@ var u_whichTexture;
 let u_lightPos;
 let u_cameraPos;
 let u_lightOn;
+let u_spotlightOn;
+let u_spotlightPos;
+let u_spotlightDir;
+let u_spotlightCutoff = 30;
+let u_spotlightExponent = 10;
 
 
 function setupWebGL() {
@@ -220,6 +250,35 @@ function connectVariablestoGLSL(){
     return;
   }
 
+  u_spotlightOn = gl.getUniformLocation(gl.program, 'u_spotlightOn');
+  if (!u_spotlightOn) {
+    console.log('Failed to get the storage location of u_spotlightOn');
+    return;
+  }
+
+  u_spotlightDir = gl.getUniformLocation(gl.program, 'u_spotlightDir');
+  if (!u_spotlightDir) {
+    console.log('Failed to get the storage location of u_spotlightDir');
+    return;
+  }
+  u_spotlightPos = gl.getUniformLocation(gl.program, 'u_spotlightPos');
+  if (!u_spotlightPos) {
+    console.log('Failed to get the storage location of u_spotlightPos');
+    return;
+  }
+
+  u_spotlightCutoff = gl.getUniformLocation(gl.program, 'u_spotlightCutoff');
+  if (!u_spotlightCutoff) {
+  console.log('Failed to get the storage location of u_spotlightCutoff');
+  return;
+}
+
+u_spotlightExponent = gl.getUniformLocation(gl.program, 'u_spotlightExponent');
+if (!u_spotlightExponent) {
+  console.log('Failed to get the storage location of u_spotlightExponent');
+  return;
+}
+
   var identityM = new Matrix4();
   gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
   // Set up the view and projection matrices
@@ -300,20 +359,33 @@ let h_angle = 0;
 let g_camera;
 let g_normal = false;
 let g_animation = false;
+let g_animation2 = false;
 let g_lightPos = [0, 1, 1];
+let g_spotlightPos = [0, 1, 2];
 let g_lightOn = false;
+let g_spotlightOn = false;
+let g_spotlightDir = [0, -1, -1];
 
 function addActionsForHtmlUI() {
   document.getElementById('on').onclick   = function() { g_normal = true;};
   document.getElementById('off').onclick  = function() { g_normal = false;};
   document.getElementById('aniOn').onclick  = function() { g_animation = true;};
   document.getElementById('aniOff').onclick  = function() { g_animation = false;};
+  document.getElementById('aniSpotOn').onclick  = function() { g_animation2 = true;};
+  document.getElementById('aniSpotOff').onclick  = function() { g_animation2 = false;};
   document.getElementById('lightOn').onclick  = function() { g_lightOn = true;};
   document.getElementById('lightOff').onclick  = function() { g_lightOn = false;};
+  document.getElementById('spotlightOn').onclick  = function() { g_spotlightOn = true;};
+  document.getElementById('spotlightOff').onclick  = function() { g_spotlightOn = false;};
   document.getElementById('lightx').addEventListener('input', function() { g_lightPos[0] = this.value; renderScene();});
   document.getElementById('lighty').addEventListener('input', function() { g_lightPos[1] = this.value; renderScene();});
   document.getElementById('lightz').addEventListener('input', function() { g_lightPos[2] = this.value; renderScene();});
-  
+  document.getElementById('spotlightx').addEventListener('input', function() { g_spotlightPos[0] = this.value; renderScene();});
+  document.getElementById('spotlighty').addEventListener('input', function() { g_spotlightPos[1] = this.value; renderScene();});
+  document.getElementById('spotlightz').addEventListener('input', function() { g_spotlightPos[2] = this.value; renderScene();});
+  document.getElementById('spotlightDirx').addEventListener('input', function() { g_spotlightDir[0] = this.value; renderScene();});
+  document.getElementById('spotlightDiry').addEventListener('input', function() { g_spotlightDir[1] = this.value; renderScene();});
+  document.getElementById('spotlightDirz').addEventListener('input', function() { g_spotlightDir[2] = this.value; renderScene();});
 
 }
 
@@ -396,6 +468,10 @@ function tick(){
     updateAnimationAngles();
   }
 
+  if (g_animation2) {
+    updateAnimationAngles2();
+  }
+
 
   renderScene();
 
@@ -405,6 +481,10 @@ function tick(){
 
 function updateAnimationAngles(){
   g_lightPos[0] = Math.cos(g_seconds);
+}
+
+function updateAnimationAngles2(){
+  g_spotlightPos[2] = Math.cos(g_seconds);
 }
 
 function mouseCam(ev){
@@ -463,6 +543,7 @@ function renderScene(){
   if (g_normal) {
     test.textureNum = -1;
   }
+  test.normalMatrix.setInverseOf(test.matrix).transpose();
   test.render();
   
   var sphere = new Sphere();
@@ -472,11 +553,13 @@ function renderScene(){
   if (g_normal) {
     sphere.textureNum = -1;
   }
+  sphere.normalMatrix.setInverseOf(sphere.matrix).transpose();
   sphere.render();
 
   gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
   gl.uniform1i(u_lightOn, g_lightOn);
 
+ 
   var light = new Cube();
   light.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
   light.matrix.scale(.1,.1,.1);
@@ -486,6 +569,21 @@ function renderScene(){
   light.render();
 
 
+  gl.uniform3f(u_spotlightPos, g_spotlightPos[0], g_spotlightPos[1], g_spotlightPos[2]);
+  gl.uniform1i(u_spotlightOn, g_spotlightOn);
+
+   // Set spotlight parameters
+   gl.uniform3f(u_spotlightDir, g_spotlightDir[0], g_spotlightDir[1], g_spotlightDir[2]);
+   gl.uniform1f(u_spotlightCutoff, Math.cos(Math.PI / 6)); // 30 degrees cutoff
+    gl.uniform1f(u_spotlightExponent, 10.0);
+
+  var spotlight = new Cube();
+  spotlight.matrix.translate(g_spotlightPos[0], g_spotlightPos[1], g_spotlightPos[2]);
+  spotlight.matrix.scale(.1,.1,.1);
+  spotlight.color = [1.0, 1.0, 0.0, 1.0];
+  spotlight.textureNum = -2;
+  spotlight.normalMatrix.setInverseOf(spotlight.matrix).transpose();
+  spotlight.render();
 
   let duration = performance.now() - startTime;
   sendTextToHTML(`Ms: ${Math.floor(duration)}, FPS: ${Math.floor(10000/duration)/10}`, 'info');

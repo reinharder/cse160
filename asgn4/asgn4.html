@@ -15,14 +15,19 @@
     <button type="button" id="on">ON</button>
     <button type="button" id="off">OFF</button>
     <br>
-    <label for="animation">Animation: </label>
+    <label for="animation">Animation: Spotlight Animation:</label>
     <br>
     <button type="button" id="aniOn">ON</button>
     <button type="button" id="aniOff">OFF</button>
+    <button type="button" id="aniSpotOn">ON</button>
+    <button type="button" id="aniSpotOff">OFF</button>
     <br>
     <label for="light">Light: </label>
     <button type="button" id="lightOn">ON</button>
     <button type="button" id="lightOff">OFF</button>
+    <label for="spotlight">Spotlight: </label>
+    <button type="button" id="spotlightOn">ON</button>
+    <button type="button" id="spotlightOff">OFF</button>
     <br>
     <label for="joint">Light X</label>
    <input type="range" id="lightx" name="lightx" min="-10" max="10" value="0" step="0.1" class = "slider"><br>
@@ -30,6 +35,14 @@
    <input type="range" id="lighty" name="lighty" min="-10" max="10" value="-1" step="0.1" class = "slider"><br>
    <label for="lightz">Light Z</label>
    <input type="range" id="lightz" name="lightz" min="-4" max="5" value="-2" step="0.1" class = "slider"><br>
+   <label for="spotlight">Spotlight</label><br>
+   <input type="range" id="spotlightx" name="spotlightx" min="0" max="4" value="0" step="0.1" class = "slider"><br>
+   <input type="range" id="spotlighty" name="spotlighty" min="0" max="4" value="0" step="0.1" class = "slider"><br>
+   <input type="range" id="spotlightz" name="spotlightz" min="0" max="4" value="0" step="0.1" class = "slider"><br>
+    <label for="spotlightDir">Spotlight Direction</label><br>
+    <input type="range" id="spotlightDirx" name="spotlightDirz" min="-1" max="1" value="0" step="0.1" class = "slider"><br>
+    <input type="range" id="spotlightDiry" name="spotlightDirz" min="-1" max="1" value="0" step="0.1" class = "slider"><br>
+    <input type="range" id="spotlightDirz" name="spotlightDirz" min="-1" max="1" value="0" step="0.1" class = "slider"><br>
    <p></p>
     <label for="description">I made a simple maze using the minecraft dirt texture. </label>
     <label for="description2">Start from the blue box and find a way out.</label>
@@ -42,4 +55,9 @@
     <script src="point.js"></script>
     <script src="triangle.js"></script>
     <script src="cube.js"></script>
-    <script sr
+    <script src="sphere.js"></script>
+    <script src="world.js"></script>
+    <script src="camera.js"></script>
+    <script src="map.js"></script>
+  </body>
+</html>

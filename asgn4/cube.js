@@ -19,6 +19,8 @@ class Cube {
       // Pass the matrix to u_ModelMatrix attribute
       gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
 
+      // Calculate the matrix to transform the normals and pass it to u_NormalMatrix
+      gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
       // Front of Cube
       drawTriangle3DUVNormal([0,0,0, 1,1,0, 1,0,0],[0,0, 1,1, 1,0], [0,0,-1, 0,0,-1, 0,0,-1]);
       drawTriangle3DUVNormal([0,0,0, 0,1,0, 1,1,0],[0,0, 0,1, 1,1], [0,0,-1, 0,0,-1, 0,0,-1]);

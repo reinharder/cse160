@@ -11,6 +11,7 @@ function sin(x){
     constructor(){
        this.color = [1.0, 1.0, 1.0, 1.0];
        this.matrix = new Matrix4();
+       this.normalMatrix = new Matrix4();
        this.textureNum = -2;
        this.verts32 = new Float32Array([]);
     }
@@ -26,6 +27,8 @@ function sin(x){
  
        // Pass the matrix to u_ModelMatrix attribute
        gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
+
+       gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
  
        var d = Math.PI/25;
        var dd = Math.PI/25;
